@@ -1,22 +1,19 @@
+'''This test will repeatedly start and stop the watchdog service to ensure that the driver can handle multiple restarts without failures.'''
+
+import subprocess
 import time
 import pytest
-import subprocess
 
-@pytest.mark.parametrize('watchdog_device', ['/dev/watchdog'])
-def test_continuous_watchdog_reset(watchdog_device):
-    """Stress test to continuously reset the watchdog timer."""
+def test_watchdog_service_restart():
+    """Stress test to start and stop the watchdog service repeatedly."""
     
     try:
-        # Open the watchdog device for writing
-        with open(watchdog_device, 'w') as f:
-            start_time = time.time()
-            # Write to the watchdog every 0.5 seconds for 1 minute
-            for _ in range(120):
-                f.write('1')  # Reset the watchdog timer
-                f.flush()     # Make sure data is written immediately
-                time.sleep(0.5)
-            elapsed_time = time.time() - start_time
-            assert elapsed_time < 70, "Watchdog timer failed to reset continuously within time."
-            print("Continuous watchdog reset stress test passed.")
-    except Exception as e:
-        pytest.fail(f"Failed during continuous watchdog reset: {e}")
+        for i in range(100):  # Restart the service 100 times
+            print(f"Restarting watchdog service, iteration {i + 1}")
+            subprocess.run(['sudo', 'systemctl', 'stop', 'watchdog'], check=True)
+            time.sleep(1)
+            subprocess.run(['sudo', 'systemctl', 'start', 'watchdog'], check=True)
+            time.sleep(1)
+        print("Watchdog service restarted 100 times successfully.")
+    except subprocess.CalledProcessError as e:
+        pytest.fail(f"Error during restarting watchdog service: {e}")
